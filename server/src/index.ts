@@ -30,8 +30,6 @@ const main = async () => {
     })
     apolloServer.applyMiddleware({app})
 
-
-
     // routes
     app.get('/', (_, res) => {
         res.send("hello")
