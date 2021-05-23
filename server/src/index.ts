@@ -8,8 +8,13 @@ import mikroConfig from './mikro-orm.config'
 import express from 'express'
 import {ApolloServer} from 'apollo-server-express'
 import {buildSchema} from 'type-graphql'
-import HelloResolver from './resolvers/hello';
 import PostResolver from './resolvers/post';
+import { UserResolver } from './resolvers/user';
+import cors from 'cors'
+
+const redis = require('redis')
+const session = require('express-session')
+
 
 
 const main = async () => {
@@ -20,15 +25,44 @@ const main = async () => {
     // express app
     const app = express()
 
-    // init GRAPHQL and apply in Express app
+    // session middleware
+    const RedisStore = require('connect-redis')(session)
+    const redisClient = redis.createClient()
+
+    app.use(
+        cors({
+            origin: "http://localhost:3000",
+            credentials: true
+        })
+    )
+
+    // cookie
+    app.use(
+        session({
+            name: 'qid',
+            store: new RedisStore({ client: redisClient, disableTouch: true }),
+            cookie: {
+                maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+                httpOnly: true,
+                sameSite: 'lax', // csrf
+                secure: __prod__ // cookie only works in https
+            },
+            saveUninitialized: false,
+            secret: 'abcd1234',
+            resave: false,
+        })
+    )
+
+
+    // type-graphql apollo middleware
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [HelloResolver, PostResolver],
+            resolvers: [PostResolver, UserResolver],
             validate: false,
         }),
-        context: () => ({em: orm.em})
+        context: ({ req, res }) => ({ em: orm.em, req, res }),
     })
-    apolloServer.applyMiddleware({app})
+    apolloServer.applyMiddleware({app, cors: false})
 
     // routes
     app.get('/', (_, res) => {
@@ -46,3 +80,8 @@ const main = async () => {
 main().catch((err) => {
     console.log(err);
 })
+
+// 0. init the dev environment 
+// 1. setting up mikro-orm entities and migration
+// 2. apply the TypeGraphQL middleware to the Express App through apolloServer
+// 3. Store session cookies in memory using Redis (use session middleware inside the apollo middleware)
