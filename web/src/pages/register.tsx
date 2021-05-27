@@ -1,10 +1,6 @@
 import React from 'react'
 import { Formik, Form } from 'formik'
 import {
-	FormControl,
-	FormLabel,
-	Input,
-	FormErrorMessage,
 	Box,
 	Button,
 } from '@chakra-ui/react'

@@ -22,13 +22,14 @@ const main = async () => {
     const orm = await MikroORM.init(mikroConfig)    
     await orm.getMigrator().up()
 
-    // express app
+    // init express app
     const app = express()
 
-    // session middleware
+    // init session middleware
     const RedisStore = require('connect-redis')(session)
     const redisClient = redis.createClient()
 
+    // set up cors for client
     app.use(
         cors({
             origin: "http://localhost:3000",
@@ -36,7 +37,7 @@ const main = async () => {
         })
     )
 
-    // cookie
+    // set up cookie for client
     app.use(
         session({
             name: 'qid',
@@ -54,7 +55,7 @@ const main = async () => {
     )
 
 
-    // type-graphql apollo middleware
+    // use type-graphql apollo middleware
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],
@@ -64,12 +65,8 @@ const main = async () => {
     })
     apolloServer.applyMiddleware({app, cors: false})
 
-    // routes
-    app.get('/', (_, res) => {
-        res.send("hello")
-    })
 
-    // init 
+    // start express server
     app.listen(4000, () => {
         console.log("server is running on port 4000s");
     })
@@ -84,4 +81,4 @@ main().catch((err) => {
 // 0. init the dev environment 
 // 1. setting up mikro-orm entities and migration
 // 2. apply the TypeGraphQL middleware to the Express App through apolloServer
-// 3. Store session cookies in memory using Redis (use session middleware inside the apollo middleware)
+// 3. Store session cookies in cache memory using Redis (use session middleware inside the apollo middleware)
