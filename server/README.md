@@ -8,9 +8,9 @@
 2.  Node.js
 3.  Express.js
 4.  PostgreSQL
-5.  MikroORM/TypeORM: Object Relational Mapping for database tables
-6.  GraphQL + TypeGraphQL: Query language to perform RESTful operations
-7.  Apollo: connect typescript graphql to Express server
-8.  Redis: storing cookies in the in-memory location
+5.  MikroORM/TypeORM: Object Relational Mapping for database tables https://mikro-orm.io/
+6.  GraphQL + TypeGraphQL: Query language to perform RESTful operations https://typegraphql.com/
+7.  Apollo: connect typescript graphql to Express server https://www.npmjs.com/package/apollo-server-express
+8.  Redis: storing cookies in the in-memory location https://www.npmjs.com/package/connect-redis
 
 ### Misc
