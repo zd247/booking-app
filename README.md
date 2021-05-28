@@ -1,12 +1,16 @@
-Technology used
-- React
-- TypeScript
-- GraphQL
-- URQL/Apollo
-- Node.js
-- PostgreSQL
-- MikroORM/TypeORM
-- Redis
-- Next.js
-- TypeGraphQL
-- Chakra
+### Use-case Diagram
+
+
+### Data-flow Diagram
+
+
+### Class Diagram
+
+
+### Technology used (visualizer)
+
+
+### Screenshots
+
+
+### Misc

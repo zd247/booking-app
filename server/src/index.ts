@@ -55,7 +55,7 @@ const main = async () => {
     )
 
 
-    // use type-graphql apollo middleware
+    // use type-graphql schema in the apollo middleware
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],

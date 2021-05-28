@@ -10,7 +10,7 @@ import { useMutation } from 'urql'
 
 interface registerProps {}
 
-// Graphql mutation
+// fetching a graphql mutation
 const REGISTER_MUT = `mutation Register($username: String!, $password:String!){
   register(options:{username: $username, password:$password}){
     errors{
