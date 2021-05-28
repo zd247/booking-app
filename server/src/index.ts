@@ -16,7 +16,7 @@ const redis = require('redis')
 const session = require('express-session')
 
 
-
+// The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
     // init ORM and migrate to latest
     const orm = await MikroORM.init(mikroConfig)    
@@ -25,11 +25,11 @@ const main = async () => {
     // init express app
     const app = express()
 
-    // init session middleware
+    // init session and redis middlewares
     const RedisStore = require('connect-redis')(session)
     const redisClient = redis.createClient()
 
-    // set up cors for client
+    // set up cors middleware for client
     app.use(
         cors({
             origin: "http://localhost:3000",
@@ -37,7 +37,7 @@ const main = async () => {
         })
     )
 
-    // set up cookie for client
+    // set up cookie middleware for client
     app.use(
         session({
             name: 'qid',
