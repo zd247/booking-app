@@ -18,15 +18,20 @@ const Register: React.FC<registerProps> = ({}) => {
 
 	return (
 		<Wrapper variant='small'>
+			<Box>
+				<p>Register Page</p>
+			</Box>
+			<hr/>
+			<br/>
 			<Formik
 				initialValues={{ username: '', password: '' }}
 				onSubmit={async (values, {setErrors}) => {
-          const response = await register(values)
-          if (response.data?.register.errors) {
-            setErrors(toErrorMap(response.data?.register.errors))
-          }else if (response.data?.register.user) {
-            router.push('/')
-          }
+					const response = await register(values)
+					if (response.data?.register.errors) {
+						setErrors(toErrorMap(response.data?.register.errors))
+					}else if (response.data?.register.user) {
+						router.push('/')
+					}
 				}}>
 				{({ isSubmitting }) => (
 					<Form>
