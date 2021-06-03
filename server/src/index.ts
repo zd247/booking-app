@@ -26,6 +26,7 @@ const main = async () => {
     const RedisStore = require('connect-redis')(session)
     const redisClient = redis.createClient()
 
+    // use cors for client connections
     app.use(
         cors({
             origin: "http://localhost:3000",
