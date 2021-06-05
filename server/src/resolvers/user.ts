@@ -2,6 +2,7 @@ import { MyContext } from './../types';
 import { Resolver, Query, Mutation, Arg, Ctx, Field, InputType, ObjectType} from 'type-graphql';
 import { User } from '../entities/User';
 import argon2 from 'argon2'
+import { COOKIE_NAME } from '../constants';
 
 @InputType()
 class UsernamePasswordInput {
@@ -129,5 +130,24 @@ export class UserResolver {
 
         return {user}
         
+    }
+
+    @Mutation(() => Boolean)
+    logout (
+        @Ctx() {res, req} : MyContext
+    ) {
+        
+        return new Promise(resolve => req.session.destroy(err => {
+            res.clearCookie(COOKIE_NAME)
+            
+            if (err) {
+                console.log (err)
+                resolve(false)
+                return
+            }
+            
+
+            resolve(true)
+        })) 
     }
 }
