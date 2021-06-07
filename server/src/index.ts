@@ -11,6 +11,7 @@ import {buildSchema} from 'type-graphql'
 import PostResolver from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import cors from 'cors'
+// import { User } from './entities/User';
 
 const redis = require('redis')
 const session = require('express-session')
@@ -18,8 +19,14 @@ const session = require('express-session')
 
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
-    const orm = await MikroORM.init(mikroConfig)    
-    await orm.getMigrator().up()
+    
+    
+    const orm = await MikroORM.init(mikroConfig)
+   
+    
+    // comment out and run this after mikro-orm migrations... not the best strategy
+    // await orm.em.nativeDelete(User, {})
+    // await orm.getMigrator().up()
 
     const app = express()
 
@@ -63,7 +70,7 @@ const main = async () => {
 
     // start express server
     app.listen(4000, () => {
-        console.log("server is running on port 4000s");
+        console.log("người phục vụ (server) tên là Express-Graphql-ORM đang chờ lệnh ở cổng http://localhost:4000");
     })
   
 

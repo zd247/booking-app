@@ -1,17 +1,12 @@
 import { MyContext } from './../types';
-import { Resolver, Query, Mutation, Arg, Ctx, Field, InputType, ObjectType} from 'type-graphql';
+import { Resolver, Query, Mutation, Arg, Ctx, Field, ObjectType} from 'type-graphql';
 import { User } from '../entities/User';
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants';
-
-@InputType()
-class UsernamePasswordInput {
-    @Field()
-    username: string
-
-    @Field()
-    password: string
-}
+import { isValidEmail } from '../utils/isValidEmail';
+import { UsernamePasswordInput } from './UsernamePasswordInput';
+import { validateRegister } from '../utils/validateRegister';
+import { sendEmail } from 'src/utils/sendEmail';
 
 @ObjectType()
 class FieldError {
@@ -41,7 +36,23 @@ export class UserResolver {
 
         const user = await em.findOne(User , {_id: req.session.userId})
         return user
+    }
 
+    @Mutation(() => Boolean)
+    async forgotPassword(
+        @Arg('email') email: string,
+        @Ctx() {em}: MyContext,
+    ) {
+        const user = await em.findOne(User , {email})
+        if (!user) {
+            console.log ("there's no user with that email")
+            return false
+        }
+
+        const token = "asd12313asdasd"
+        sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
+
+        return true
     }
 
 
@@ -49,44 +60,18 @@ export class UserResolver {
     async register (
         @Arg('options') options: UsernamePasswordInput,
         @Ctx() {em, req} : MyContext
-    ){
-        if (options.username.length <= 2) {
-            return {
-                errors: [
-                    {
-                        field: "username",
-                        message: "length must be greater than 2"
-                    }
-                ],
-            }
+    ): Promise<UserResponse>{
+        const errors = validateRegister(options)
+        if (errors) {
+            return {errors}
         }
-
-        const tempUser = await em.findOne(User , {username: options.username})
-        if (tempUser) {
-            return {
-                errors: [
-                    {
-                        field: "username",
-                        message: "username already existed"
-                    }
-                ],
-            }
-        }
-
-        if (options.password.length <= 3) {
-            return {
-                errors: [
-                    {
-                        field: "password",
-                        message: "length must be greater than 3"
-                    }
-                ],
-            }
-        }
-
 
         const hashedPassword = await argon2.hash(options.password)
-        const user = em.create(User, {username: options.username, password: hashedPassword})
+        const user = em.create(User, {
+            email: options.email,
+            username: options.username,
+            password: hashedPassword
+        })
         await em.persistAndFlush(user)
 
 
@@ -98,22 +83,24 @@ export class UserResolver {
 
     @Mutation(()=> UserResponse)
     async login (
-        @Arg('options') options: UsernamePasswordInput,
+        @Arg('usernameOrEmail') usernameOrEmail: string,
+        @Arg('password') password: string,
         @Ctx() {em, req} : MyContext
     ){
-        const user = await em.findOne(User , {username: options.username})
+        const user = await em.findOne(User,
+            isValidEmail(usernameOrEmail) ? {email: usernameOrEmail} : {username: usernameOrEmail} )
         if (!user) {
             return {
                 errors: [
                     {
-                        field: "username",
-                        message: "username provided doesn't exist",
+                        field: "username or email",
+                        message: "username or email provided doesn't exist",
                     }
                 ]
             }
         }
 
-        const valid = await argon2.verify(user.password, options.password)
+        const valid = await argon2.verify(user.password, password)
         if (!valid) {
             return {
                 errors: [
