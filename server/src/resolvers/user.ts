@@ -96,6 +96,16 @@ export class UserResolver {
         return {user: user}
     }
 
+    /**
+     * check for user with params email
+     * generate token with uuid
+     * store user's id in redis with key = oken
+     * send email with reset-password link with token as query-params
+     * 
+     * @param email email to send to reset password link
+     * @param param1 Context type
+     * @returns 
+     */
     @Mutation(() => Boolean)
     async forgotPassword(
         @Arg('email') email: string,
@@ -112,7 +122,8 @@ export class UserResolver {
             FORGET_PASSWORD_PREFIX + token,
             user._id,
             'ex',
-            1000 * 60 * 60 * 24 * 3) // 3 days stored in redis
+            1000 * 60 * 60 * 24 * 3
+        ) // 3 days stored in redis
         
         sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
 
