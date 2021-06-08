@@ -15,7 +15,7 @@ import { withUrqlClient } from 'next-urql';
 interface loginProps {}
 
 const Login: React.FC<loginProps> = ({}) => {
-const router = useRouter();
+    const router = useRouter();
     const [, login] = useLoginMutation()
 
     return (

@@ -11,16 +11,15 @@ import {buildSchema} from 'type-graphql'
 import PostResolver from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import cors from 'cors'
-// import { User } from './entities/User';
+import session from 'express-session';
+import Redis from 'ioredis'
 
-const redis = require('redis')
-const session = require('express-session')
+// import { User } from './entities/User';
 
 
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
-    
-    
+        
     const orm = await MikroORM.init(mikroConfig)
    
     
@@ -31,7 +30,7 @@ const main = async () => {
     const app = express()
 
     const RedisStore = require('connect-redis')(session)
-    const redisClient = redis.createClient()
+    const redis = new Redis()
 
     // use cors for client connections
     app.use(
@@ -44,7 +43,7 @@ const main = async () => {
     app.use(
         session({
             name: COOKIE_NAME,
-            store: new RedisStore({ client: redisClient, disableTouch: true }),
+            store: new RedisStore({ client: redis, disableTouch: true }),
             cookie: {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
                 httpOnly: true,
@@ -63,7 +62,7 @@ const main = async () => {
             resolvers: [PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em, req, res }),
+        context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
     })
     apolloServer.applyMiddleware({app, cors: false})
 

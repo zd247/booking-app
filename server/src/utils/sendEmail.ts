@@ -24,7 +24,7 @@ export async function sendEmail(to: string, text: string) {
         to: to, // list of receivers
         subject: "Hello ✔", // Subject line
         text,
-        html: "<b>Hello world?</b>", // html body
+        html: text, // html body
     });
 
     console.log("Message sent: %s", info.messageId);
