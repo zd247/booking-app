@@ -12,5 +12,6 @@
 6.  GraphQL + TypeGraphQL: Query language to perform RESTful operations https://typegraphql.com/
 7.  Apollo: connect typescript graphql to Express server https://www.npmjs.com/package/apollo-server-express
 8.  Redis: storing cookies in the in-memory location https://www.npmjs.com/package/connect-redis
+9.  Nodemailer: sending email https://nodemailer.com/about/
 
 ### Misc

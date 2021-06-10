@@ -41,10 +41,13 @@ export class UserResolver {
     }
 
     /**
-     * This function check for errors
-     * @param token 
-     * @param newPassword 
-     * @param param2 
+     * This function takes in the token from the query params
+     * that returns user id. From that we find the user and then
+     * edit the password with the newPassword param and then hash
+     * it. After that we update the database by using {em}
+     * @param token query params for the token
+     * @param newPassword newPassword input
+     * @param context Custom context 
      */
     @Mutation(() => UserResponse)
     async changePassword(
