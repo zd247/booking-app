@@ -41,8 +41,45 @@ export class UserResolver {
     }
 
     /**
+     * check for user with the email in the params, if invalid then nah
+     * if it's ok then we generate token with uuid
+     * store user's id in redis with the set key
+     * send email with reset-password link with token as query-params
+     * 
+     * @param email email to send to reset password link
+     * @param param1 Context type
+     * @returns True if the email is sucessfully sent by NodeMailer.
+     */
+     @Mutation(() => Boolean)
+     async forgotPassword(
+         @Arg('email') email: string,
+         @Ctx() {em, redis}: MyContext,
+     ) {
+         const user = await em.findOne(User , {email})
+         if (!user) {
+             console.log ("there's no user with that email")
+             return false
+         }
+ 
+         // storing the user id with token as the key in the user's local memory and it will last 3 days
+         const token = v4()
+         redis.set(
+             FORGET_PASSWORD_PREFIX + token,
+             user._id,
+             'ex',
+             1000 * 60 * 60 * 24 * 3
+         ) // 3 days stored in redis
+         
+         sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
+ 
+         return true
+     }
+
+    /**
+     * Only RUNS this funcion when the user pressed on the token link.
      * This function takes in the token from the query params
-     * that returns user id. From that we find the user and then
+     * that returns user id.
+     * From that we find the user and then
      * edit the password with the newPassword param and then hash
      * it. After that we update the database by using {em}
      * @param token query params for the token
@@ -65,7 +102,10 @@ export class UserResolver {
             }
         }
 
-        const userId = await redis.get(FORGET_PASSWORD_PREFIX +  token)
+        // check for stored user id in the local memory via redis
+        const key = FORGET_PASSWORD_PREFIX +  token
+        const userId = await redis.get(key)
+
         if (!userId) {
             return {
                 errors: [
@@ -76,10 +116,9 @@ export class UserResolver {
                 ]
             }
         }
-
-        const user = await em.findOne(User, {_id: parseInt(userId)})
-
         
+        const user = await em.findOne(User, {_id: parseInt(userId)})   
+
         if (!user) {
             return {errors: [
                     {
@@ -93,47 +132,27 @@ export class UserResolver {
         user.password = await argon2.hash(newPassword)
         em.persistAndFlush(user)
 
+        await redis.del(key) // can't change the token to reset the password.
+
         // log in the user after change the password
         req.session.userId = user._id;
 
-        return {user: user}
+        return {user}
     }
+
+    
+
 
     /**
-     * check for user with params email
-     * generate token with uuid
-     * store user's id in redis with key = oken
-     * send email with reset-password link with token as query-params
-     * 
-     * @param email email to send to reset password link
-     * @param param1 Context type
+     * take in the options params from UsernamePasswordInput
+     * validate the params option
+     * hash the password
+     * use em to create a new User and store mutated options field
+     * in the database
+     * @param options 
+     * @param param1 
      * @returns 
      */
-    @Mutation(() => Boolean)
-    async forgotPassword(
-        @Arg('email') email: string,
-        @Ctx() {em, redis}: MyContext,
-    ) {
-        const user = await em.findOne(User , {email})
-        if (!user) {
-            console.log ("there's no user with that email")
-            return false
-        }
-
-        const token = v4()
-        redis.set(
-            FORGET_PASSWORD_PREFIX + token,
-            user._id,
-            'ex',
-            1000 * 60 * 60 * 24 * 3
-        ) // 3 days stored in redis
-        
-        sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">reset password</a>`)
-
-        return true
-    }
-
-
     @Mutation(()=> UserResponse)
     async register (
         @Arg('options') options: UsernamePasswordInput,
@@ -159,6 +178,17 @@ export class UserResolver {
         return {user}
     }
 
+
+    /**
+     * check for the valid email or username
+     * unhash the password with argon2.verify() method 
+     * return error if fail
+     * else save the returned user detail to express session
+     * @param usernameOrEmail 
+     * @param password 
+     * @param param2 
+     * @returns user object
+     */
     @Mutation(()=> UserResponse)
     async login (
         @Arg('usernameOrEmail') usernameOrEmail: string,
@@ -197,6 +227,12 @@ export class UserResolver {
         
     }
 
+
+    /**
+     * clear the cookie from the browser express-session
+     * @param param0 
+     * @returns 
+     */
     @Mutation(() => Boolean)
     logout (
         @Ctx() {res, req} : MyContext
