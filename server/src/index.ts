@@ -33,7 +33,8 @@ const main = async () => {
         synchronize: true,
     })
 
-    // console.log (conn.isConnected)
+    // Post.delete({})
+    // User.delete({})
    
 
     const app = express()
