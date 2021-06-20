@@ -1,9 +1,9 @@
 import 'reflect-metadata'
 
-import { COOKIE_NAME, __prod__ } from './constants';
+import { createConnection } from 'typeorm';
 
-import {MikroORM} from '@mikro-orm/core'
-import mikroConfig from './mikro-orm.config'
+
+import { COOKIE_NAME, __prod__ } from './constants';
 
 import express from 'express'
 import {ApolloServer} from 'apollo-server-express'
@@ -14,18 +14,27 @@ import cors from 'cors'
 import session from 'express-session';
 import Redis from 'ioredis'
 
-// import { User } from './entities/User';
-
+import { User } from './entities/User';
+import { Post } from './entities/Post';
 
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
         
-    const orm = await MikroORM.init(mikroConfig)
+    const conn = await createConnection({
+        type: "postgres",
+        host: "localhost",
+        port: 5432,
+        logging: true,
+        username: "postgres",
+        password: "password",
+        database: "lireddit2",
+        entities: [User, Post],
+        name: "default",
+        synchronize: true,
+    })
+
+    // console.log (conn.isConnected)
    
-    
-    // comment out and run this after mikro-orm migrations... not the best strategy
-    // await orm.em.nativeDelete(User, {})
-    // await orm.getMigrator().up()
 
     const app = express()
 
@@ -62,7 +71,7 @@ const main = async () => {
             resolvers: [PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
+        context: ({ req, res }) => ({ req, res, redis }),
     })
     apolloServer.applyMiddleware({app, cors: false})
 

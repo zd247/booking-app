@@ -1,14 +1,15 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
+
 import {ObjectType, Field} from 'type-graphql'
+import { Column, Entity, PrimaryGeneratedColumn, BaseEntity } from 'typeorm';
 
 @ObjectType()
 @Entity()
-export class Post {
+export class Post extends BaseEntity {
     @Field()
-    @PrimaryKey()
+    @PrimaryGeneratedColumn()
     _id!: number;
 
     @Field(() => String)
-    @Property({type: 'text'})
+    @Column({nullable: true})
     title!: string;
 }
