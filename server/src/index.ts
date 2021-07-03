@@ -20,7 +20,7 @@ import { Post } from './entities/Post';
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
         
-    const conn = await createConnection({
+   await createConnection({
         type: "postgres",
         host: "localhost",
         port: 5432,

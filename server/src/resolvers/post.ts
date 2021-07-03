@@ -32,7 +32,6 @@ export default class PostResolver {
         @Arg("input") input : PostInput,
         @Ctx() {req}:  MyContext
     ): Promise<Post> {
-        
         return await Post.create({
             ...input,
             creatorId: req.session.userId
