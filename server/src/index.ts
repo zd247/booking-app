@@ -13,14 +13,14 @@ import { UserResolver } from './resolvers/user';
 import cors from 'cors'
 import session from 'express-session';
 import Redis from 'ioredis'
-
+import path from "path"
 import { User } from './entities/User';
 import { Post } from './entities/Post';
 
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
         
-   await createConnection({
+   const conn = await createConnection({
         type: "postgres",
         host: "localhost",
         port: 5432,
@@ -30,8 +30,11 @@ const main = async () => {
         database: "lireddit2",
         entities: [User, Post],
         name: "default",
-        synchronize: true,
+        migrations: [path.join(__dirname, './migrations/*')],
+        synchronize: false,
     })
+
+    await conn.runMigrations()
 
     // Post.delete({})
     // User.delete({})

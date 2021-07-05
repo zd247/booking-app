@@ -48,7 +48,6 @@ const CreatePost: React.FC<{}> = ({}) => {
                             Create post
                         </Button>
                     </Form>
-                
                 )}
             </Formik>
         </Layout>

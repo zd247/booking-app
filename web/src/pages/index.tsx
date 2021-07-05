@@ -2,14 +2,16 @@ import { NavBar } from "../components/NavBar"
 
 import { withUrqlClient } from 'next-urql';
 import { createUrqlClient } from "../utils/createUrqlClient";
-import { usePostQuery } from "../generated/graphql";
+import { usePostsQuery } from "../generated/graphql";
 import { Layout } from "../components/Layout";
 
 import {Link} from '@chakra-ui/react'
 import  NextLink from 'next/link'
 
 const Index = () => {
-  const [{data}] = usePostQuery()
+  const [{data, fetching}] = usePostsQuery({variables: {
+    limit: 30,
+  }})
   
   return (
   <Layout>
@@ -21,10 +23,10 @@ const Index = () => {
     <hr/>
     Posts
     <hr/>
-    {!data ? (<div>loading...</div>) : 
+    {!data && !fetching? (<div>loading...</div>) : 
     data.posts.map(p =>(
       <div key={p._id}>
-        {p.title} + {p.text}
+        {p._id} + {p.title}
       </div>
 
     ))}
