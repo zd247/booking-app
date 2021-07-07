@@ -6,6 +6,7 @@ interface LayoutProps {
     variant?: WrapperVariant;
 }
 
+// The layout contains a navbar and the children components added below.
 export const Layout: React.FC<LayoutProps> = ({ children, variant }) => {
     return (
         <>

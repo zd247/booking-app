@@ -1,7 +1,7 @@
 import { isAuth } from './../middleware/isAuth';
 import { MyContext } from './../types';
 import { Post } from './../entities/Post';
-import { Resolver, Query, Arg, Mutation, Field, InputType, Ctx, UseMiddleware, Int} from "type-graphql";
+import { Resolver, Query, Arg, Mutation, Field, InputType, Ctx, UseMiddleware, Int, FieldResolver, Root} from "type-graphql";
 import { getConnection } from 'typeorm';
 
 @InputType()
@@ -13,8 +13,27 @@ class PostInput {
 }
 
 
-@Resolver()
+/**
+ * 
+ */
+@Resolver(Post)
 export default class PostResolver {
+    /**
+     * return the custom field for graphql returned field.
+     * @param root The entity to mimic from and query from
+     */
+    @FieldResolver(() => String)
+    textSnippet (@Root() root: Post) {
+        return root.text.slice(0, 50)
+    }
+
+
+    /**
+     * 
+     * @param limit how 
+     * @param cursor pick a location in the list of Post, the function will 
+     * take all data before or after it
+     */
     @Query(() => [Post], {nullable: true})
     async posts(
         @Arg("limit", () => Int) limit: number,

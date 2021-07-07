@@ -1,5 +1,5 @@
 import { dedupExchange, fetchExchange } from "urql"
-import { cacheExchange } from '@urql/exchange-graphcache';
+import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
 import { LogoutMutation, MeQuery, MeDocument, LoginMutation, RegisterMutation } from "../generated/graphql"
 import { betterUpdateQuery } from "../pages/betterUpdateQuery"
 
@@ -14,11 +14,50 @@ export const errorExchange: Exchange = ({ forward }) => ops$ => {
     tap(({ error }) => {
       // If the OperationResult has an error send a request to sentry
       if (error?.message.includes("not authenticated")) {
-        Router.replace('/login') // like redirecting
+        // Router.replace('/login') // like redirecting
+        console.log ("authentication is not valid")
       }
+      console.log (error?.message)
     })
   );
 };
+
+const cursorPagination = (): Resolver => {
+  return (_parent, fieldArgs, cache, info) => {
+    const { parentKey: entityKey, fieldName } = info;
+    const allFields = cache.inspectFields(entityKey);
+    const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
+    const size = fieldInfos.length;
+    if (size === 0) {
+      return undefined;
+    }
+
+    const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
+    const isItInTheCache = cache.resolve(
+      cache.resolveFieldByKey(entityKey, fieldKey) as string,
+      "posts"
+    );
+    info.partial = !isItInTheCache;
+    let hasMore = true;
+    const results: string[] = [];
+    fieldInfos.forEach((fi) => {
+      const key = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
+      const data = cache.resolve(key, "posts") as string[];
+      const _hasMore = cache.resolve(key, "hasMore");
+      if (!_hasMore) {
+        hasMore = _hasMore as boolean;
+      }
+      results.push(...data);
+    });
+
+    return {
+      __typename: "PaginatedPosts",
+      hasMore,
+      posts: results,
+    };
+  };
+};
+
 
 export const createUrqlClient = (ssrExchange: any) => ({
   url: 'http://localhost:4000/graphql',

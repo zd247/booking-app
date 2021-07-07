@@ -4,6 +4,7 @@ query Posts($limit:Int!, $cursor:String){
     title,
     creatorId,
     text,
+    textSnippet,
     updatedAt,
     createdAt
   }

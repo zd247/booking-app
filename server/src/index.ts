@@ -91,8 +91,3 @@ const main = async () => {
 main().catch((err) => {
     console.log(err);
 })
-
-// 0. init the dev environment 
-// 1. setting up mikro-orm entities and migration
-// 2. apply the TypeGraphQL middleware to the Express App through apolloServer
-// 3. Store session cookies in cache memory using Redis (use session middleware inside the apollo middleware)

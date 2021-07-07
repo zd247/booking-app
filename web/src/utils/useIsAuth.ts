@@ -5,7 +5,7 @@ import { useMeQuery } from "../generated/graphql"
 export const useIsAuth = () => {
     const [{data, fetching}] = useMeQuery()
 
-    // when receive this error, perform this ?next=... method
+    // if doesnt detect me query, redirect immediately to login page
     useEffect(() => {
         if (!data?.me && !fetching) {
             router.replace('/login?next=' + router.pathname)
