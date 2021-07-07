@@ -14,8 +14,6 @@ import { User } from './entities/User';
 import { Post } from './entities/Post';
 
 
-
-
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
     // create a connection with the TypeORM with psql (declare new entities here)
@@ -37,7 +35,7 @@ const main = async () => {
     await conn.runMigrations()
 
 
-    // Uncomment these below when you need to reset the database
+    // Uncomment these below when you need to reset all entities
     // Post.delete({})
     // User.delete({})
 

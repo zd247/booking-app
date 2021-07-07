@@ -13,14 +13,16 @@ class PostInput {
 }
 
 
-/**
- * 
- */
 @Resolver(Post)
 export default class PostResolver {
     /**
-     * return the custom field for graphql returned field.
-     * @param root The entity to mimic from and query from
+     * with this FieldResolver() decorator in place...
+     * this function will add a new return field for this entity's resolver
+     * ONLY USE THIS FUNCTION FOR SPECIAL QUERY 
+     * the name of the function will represent the field name.
+     * see https://typegraphql.com/docs/extensions.html#using-the-extensions-decorator
+     * 
+     * @param root The Entity to add field to
      */
     @FieldResolver(() => String)
     textSnippet (@Root() root: Post) {
@@ -29,8 +31,11 @@ export default class PostResolver {
 
 
     /**
+     * This function query all posts data object from the Post entity with pagination
+     * This function also contain post paginations to reduce the load for server req
+     * and also the front-end for better rendering experience and caching.
      * 
-     * @param limit how 
+     * @param limit limiting how 
      * @param cursor pick a location in the list of Post, the function will 
      * take all data before or after it
      */
@@ -39,8 +44,10 @@ export default class PostResolver {
         @Arg("limit", () => Int) limit: number,
         @Arg("cursor", () => String, { nullable: true }) cursor: string | null
     ){
+        // set the limit 
         const realLimit = Math.min(50, limit)
 
+        // using typeORM query builder to better query for the post with predefined options.
         const qb = (
             getConnection()
             .getRepository(Post)
@@ -49,6 +56,8 @@ export default class PostResolver {
             .take(realLimit)
         )
         
+
+        // if the cursor params is passed, let the query builder to selectively query data
         if (cursor) {
             qb.where('"createdAt" < :cursor', {cursor: new Date(parseInt(cursor))})
         }
@@ -57,6 +66,10 @@ export default class PostResolver {
 
     }
 
+    /**
+     * 
+     * @param _id 
+     */
     @Query(() => Post, {nullable: true})
     async post ( 
         @Arg('id') _id: number
@@ -64,6 +77,12 @@ export default class PostResolver {
         return await Post.findOne(_id)
     }
 
+
+    /**
+     * 
+     * @param input 
+     * @param param1 
+     */
     @Mutation(() => Post)
     @UseMiddleware(isAuth)
     async createPost ( 
@@ -77,7 +96,9 @@ export default class PostResolver {
         
     }
 
+    
     @Mutation(() => Post, {nullable: true})
+    @UseMiddleware(isAuth)
     async updatePost ( 
         @Arg('id') _id: number,
         @Arg('title', () => String, {nullable: true}) title: string

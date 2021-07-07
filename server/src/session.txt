@@ -1,9 +1,11 @@
+# storing user id in 
+
 req.session.userId = user.id;
 
 {userId: 1} -> send that to redis
 
 
-1
+1 index the userID object with session encrypted key
 sess:qwoeiuowqjoqjw -> { userId: 1 }
 
 2
@@ -21,4 +23,5 @@ qwoieu9012798quw9euoe1i2uo -> sess:qwoeiuowqjoqjw
 server makes a request to redis
 sess:qwoeiuowqjoqjw -> { userId: 1 }
 
-req.session = { userId: 1 }
+so when we call this in a resolver's function, we get the object stored in session variable named "id"
+req.session!.id = { userId: 1 }

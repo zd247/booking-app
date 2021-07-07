@@ -15,3 +15,5 @@
 9.  Nodemailer: sending email https://nodemailer.com/about/
 
 ### Misc
+
+https://typegraphql.com/docs/extensions.html#using-the-extensions-decorator
