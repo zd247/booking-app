@@ -1,10 +1,6 @@
 import 'reflect-metadata'
-
 import { createConnection } from 'typeorm';
-
-
 import { COOKIE_NAME, __prod__ } from './constants';
-
 import express from 'express'
 import {ApolloServer} from 'apollo-server-express'
 import {buildSchema} from 'type-graphql'
@@ -17,10 +13,13 @@ import path from "path"
 import { User } from './entities/User';
 import { Post } from './entities/Post';
 
+
+
+
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
-        
-   const conn = await createConnection({
+    // create a connection with the TypeORM with psql (declare new entities here)
+    const conn = await createConnection({
         type: "postgres",
         host: "localhost",
         port: 5432,
@@ -34,25 +33,30 @@ const main = async () => {
         synchronize: false,
     })
 
+    // running custom migrations 
     await conn.runMigrations()
 
+
+    // Uncomment these below when you need to reset the database
     // Post.delete({})
     // User.delete({})
-   
 
-    const app = express()
 
+    // declare redis
     const RedisStore = require('connect-redis')(session)
     const redis = new Redis()
 
-    // use cors for client connections
+
+
+    // init Express app (I think express is a framework that let javascript talk to the web browser)
+    const app = express()
     app.use(
         cors({
             origin: "http://localhost:3000",
             credentials: true
         })
     )
-
+    // https://www.npmjs.com/package/express-session
     app.use(
         session({
             name: COOKIE_NAME,
@@ -70,6 +74,7 @@ const main = async () => {
     )
 
 
+    // Graphql server client middleware (register resolvers here)
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],
@@ -91,3 +96,4 @@ const main = async () => {
 main().catch((err) => {
     console.log(err);
 })
+
