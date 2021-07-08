@@ -88,7 +88,6 @@ const main = async () => {
         console.log("người phục vụ (server) tên là Express-Graphql-ORM đang chờ lệnh ở cổng http://localhost:4000");
     })
   
-
 }
 
 main().catch((err) => {

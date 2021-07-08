@@ -17,3 +17,5 @@
 ### Misc
 
 https://typegraphql.com/docs/extensions.html#using-the-extensions-decorator
+
+Woah this new power mode is so awesome!!

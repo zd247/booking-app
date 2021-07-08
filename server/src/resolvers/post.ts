@@ -67,8 +67,8 @@ export default class PostResolver {
     }
 
     /**
-     * 
-     * @param _id 
+     * find the post with the given id in the params
+     * @param _id id of the post to be found.
      */
     @Query(() => Post, {nullable: true})
     async post ( 
@@ -79,9 +79,7 @@ export default class PostResolver {
 
 
     /**
-     * 
-     * @param input 
-     * @param param1 
+     * insert new post data to the Post table
      */
     @Mutation(() => Post)
     @UseMiddleware(isAuth)
@@ -96,6 +94,7 @@ export default class PostResolver {
         
     }
 
+    
     
     @Mutation(() => Post, {nullable: true})
     @UseMiddleware(isAuth)

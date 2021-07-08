@@ -10,10 +10,6 @@ import { validateRegister } from '../utils/validateRegister';
 import { sendEmail } from '../utils/sendEmail'
 import { v4 } from 'uuid'
 
-/* -------------------------------------------------------------------------- */
-/*                                 interfaces                                 */
-/* -------------------------------------------------------------------------- */
-
 @ObjectType()
 class FieldError {
     @Field()
