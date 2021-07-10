@@ -44,10 +44,10 @@ export default class PostResolver {
         @Arg("limit", () => Int) limit: number,
         @Arg("cursor", () => String, { nullable: true }) cursor: string | null
     ){
-        // set the limit 
+        // cap the limit at 50 if we pass more than 50, prevent fetching the whole database
         const realLimit = Math.min(50, limit)
 
-        // using typeORM query builder to better query for the post with predefined options.
+        // using typeORM query builder to use more advanced query
         const qb = (
             getConnection()
             .getRepository(Post)
@@ -62,6 +62,7 @@ export default class PostResolver {
             qb.where('"createdAt" < :cursor', {cursor: new Date(parseInt(cursor))})
         }
 
+        // execute fetching query
         return qb.getMany()
 
     }

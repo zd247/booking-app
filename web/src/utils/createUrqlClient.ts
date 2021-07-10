@@ -1,13 +1,19 @@
 import { dedupExchange, fetchExchange } from "urql"
 import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
 import { LogoutMutation, MeQuery, MeDocument, LoginMutation, RegisterMutation } from "../generated/graphql"
-import { betterUpdateQuery } from "../pages/betterUpdateQuery"
+import { betterUpdateQuery } from "./betterUpdateQuery"
 
 import { pipe, tap } from 'wonka';
 import { Exchange } from 'urql';
 import  Router from "next/router"
 
+
+/* -------------------------------------------------------------------------- */
+/*                         Add-on components for URQL                         */
+/* -------------------------------------------------------------------------- */
+
 // global error handling from URQL
+// basically just log the error for now ..
 export const errorExchange: Exchange = ({ forward }) => ops$ => {
   return pipe(
     forward(ops$),
@@ -22,50 +28,61 @@ export const errorExchange: Exchange = ({ forward }) => ops$ => {
   );
 };
 
-const cursorPagination = (): Resolver => {
-  return (_parent, fieldArgs, cache, info) => {
-    const { parentKey: entityKey, fieldName } = info;
-    const allFields = cache.inspectFields(entityKey);
-    const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
-    const size = fieldInfos.length;
-    if (size === 0) {
-      return undefined;
-    }
+// const cursorPagination = (): Resolver => {
+//   return (_parent, fieldArgs, cache, info) => {
+//     const { parentKey: entityKey, fieldName } = info;
+//     const allFields = cache.inspectFields(entityKey);
+//     const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
+//     const size = fieldInfos.length;
+//     if (size === 0) {
+//       return undefined;
+//     }
 
-    const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
-    const isItInTheCache = cache.resolve(
-      cache.resolveFieldByKey(entityKey, fieldKey) as string,
-      "posts"
-    );
-    info.partial = !isItInTheCache;
-    let hasMore = true;
-    const results: string[] = [];
-    fieldInfos.forEach((fi) => {
-      const key = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
-      const data = cache.resolve(key, "posts") as string[];
-      const _hasMore = cache.resolve(key, "hasMore");
-      if (!_hasMore) {
-        hasMore = _hasMore as boolean;
-      }
-      results.push(...data);
-    });
+//     const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
+//     const isItInTheCache = cache.resolve(
+//       cache.resolveFieldByKey(entityKey, fieldKey) as string,
+//       "posts"
+//     );
+//     info.partial = !isItInTheCache;
+//     let hasMore = true;
+//     const results: string[] = [];
+//     fieldInfos.forEach((fi) => {
+//       const key = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
+//       const data = cache.resolve(key, "posts") as string[];
+//       const _hasMore = cache.resolve(key, "hasMore");
+//       if (!_hasMore) {
+//         hasMore = _hasMore as boolean;
+//       }
+//       results.push(...data);
+//     });
 
-    return {
-      __typename: "PaginatedPosts",
-      hasMore,
-      posts: results,
-    };
-  };
-};
+//     return {
+//       __typename: "PaginatedPosts",
+//       hasMore,
+//       posts: results,
+//     };
+//   };
+// };
 
 
+/* -------------------------------------------------------------------------- */
+/*                           URQL client declaration                          */
+/* -------------------------------------------------------------------------- */
+
+// This central Client manages all of our GraphQL requests and results.
 export const createUrqlClient = (ssrExchange: any) => ({
   url: 'http://localhost:4000/graphql',
 	fetchOptions: {
 		credentials: 'include' as const,
 	},
+  // see this doc for better understanding about URQL exchanges
+  // https://formidable.com/open-source/urql/docs/api/core/#exchanges
 	exchanges: [
-    dedupExchange,
+    dedupExchange, // eliminating duplicate copies of repeating data.
+    // apply cache updates (Cache Exchange) for auth mutations
+    // this is because urql client does not update the cache automatically after each request
+    // see https://formidable.com/open-source/urql/docs/graphcache/cache-updates/
+    // reference 3:26:21 https://www.youtube.com/watch?v=I6ypD7qv3Z8&t=9813s
     cacheExchange({
       updates: {
         Mutation: {
@@ -112,8 +129,8 @@ export const createUrqlClient = (ssrExchange: any) => ({
         }
       }
     }),
-    errorExchange,
-    ssrExchange,
-    fetchExchange
+    errorExchange, // global error handling for each URQL request
+    ssrExchange, // reduce browser load, better UX
+    fetchExchange //  is responsible for sending operations of type 'query' and 'mutation' to a GraphQL API using fetch 
   ],
 })

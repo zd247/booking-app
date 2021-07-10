@@ -34,6 +34,8 @@ const Index = () => {
     </Flex>
     
 
+    {/* list of posts */}
+
     {!data && fetching? (
       <div>loading...</div>
     ) : (
@@ -52,6 +54,8 @@ const Index = () => {
       )
     ))}
 
+
+    {/* load more button */}
     {data ? (
       <Flex>
         <Button m="auto" my ={8}>
@@ -64,5 +68,5 @@ const Index = () => {
   </Layout>
 )}
 
-// for SSR
+// turn on SSR for this page
 export default withUrqlClient(createUrqlClient, {ssr: true})(Index)
