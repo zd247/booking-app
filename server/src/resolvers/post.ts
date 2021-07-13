@@ -16,7 +16,6 @@ import {
   ObjectType,
 } from "type-graphql";
 import { getConnection } from "typeorm";
-import { Updoot } from "./../entities/Updoot";
 
 @InputType()
 class PostInput {
@@ -85,7 +84,7 @@ export default class PostResolver {
     COMMIT;
     `
     )
-    
+
     return true;
   }
 
@@ -116,8 +115,14 @@ export default class PostResolver {
     }
     const posts = await getConnection().query(
       `
-    select p.*
+    select p.*,
+    json_build_object (
+      '_id', u._id,
+      'username', u.username,
+      'email', u.email
+    ) creator
     from post p
+    inner join public.user u on u._id = p."creatorId"
     ${cursor ? `where p."createdAt" < $2` : ""}
     order by p."createdAt" DESC
     limit $1
@@ -141,6 +146,8 @@ export default class PostResolver {
 
     // // execute fetching query
     // const posts = await qb.getMany();
+
+    console.log (posts)
 
     return {
       posts: posts.slice(0, realLimit),

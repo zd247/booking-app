@@ -109,7 +109,9 @@ export const createUrqlClient = (ssrExchange: any) => ({
           posts: cursorPagination(),
         },
       },
-      // auto-update cache for all kind of mutations.
+      // auto-update cache for all kind of mutations for real-time refresh exprience
+      // for auth cache update, updating the data.me query using betterUpdateQuery for better caching-update experience
+      // updateQuery() can be used to update the data of a given query using an updater function
       updates: {
         Mutation: {
           // reset the cache and re-fetch newer data from the server 

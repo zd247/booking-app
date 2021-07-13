@@ -32,11 +32,13 @@ const main = async () => {
   });
 
   // running custom migrations
-  await conn.runMigrations();
+  // see https://typeorm.io/#/migrations
+  // await conn.runMigrations();
 
-  // Uncomment these below when you need to reset all entities
+  // Uncomment these below when you need to reset all data
   // Post.delete({})
   // User.delete({})
+  // Updoot.delete({})
 
   // declare redis
   const RedisStore = require("connect-redis")(session);

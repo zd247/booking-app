@@ -1,6 +1,6 @@
 import { FORGET_PASSWORD_PREFIX } from './../constants';
 import { MyContext } from './../types';
-import { Resolver, Query, Mutation, Arg, Ctx, Field, ObjectType} from 'type-graphql';
+import { Resolver, Query, Mutation, Arg, Ctx, Field, ObjectType, FieldResolver, Root} from 'type-graphql';
 import { User } from '../entities/User';
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants';
@@ -28,9 +28,26 @@ class UserResponse {
     user?: User
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+    /* -------------------------------------------------------------------------- */
+    /*                               Field Resolvers                              */
+    /* -------------------------------------------------------------------------- */
+    // the User Root object means that it applies to all user data object
+    @FieldResolver(() => String)
+    email( @Root() user: User,@Ctx() { req }: MyContext) {
+        // this is the current user and its ok to show them their own email
+        if (req.session.userId === user._id) {
+          return user.email;
+        }
+        // current user can't see someone elses email
+        return "";
+      }
 
+
+    /* -------------------------------------------------------------------------- */
+    /*                              Utils and Extras                              */
+    /* -------------------------------------------------------------------------- */
     // return user based on the stored session cookie
     @Query(() => User, {nullable: true})
     async me (@Ctx() { req} : MyContext){
@@ -143,7 +160,9 @@ export class UserResolver {
     }
 
     
-
+    /* -------------------------------------------------------------------------- */
+    /*                               Authentication                               */
+    /* -------------------------------------------------------------------------- */
 
     /**
      * take in the options params from UsernamePasswordInput

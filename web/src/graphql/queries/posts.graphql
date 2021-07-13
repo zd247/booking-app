@@ -8,7 +8,13 @@ query Posts($limit:Int!, $cursor:String){
       text,
       textSnippet,
       updatedAt,
-      createdAt
+      createdAt,
+      points,
+      creator{
+        _id,
+        username,
+        email,
+      }
     }
   }
 }
