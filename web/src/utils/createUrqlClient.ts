@@ -1,17 +1,21 @@
-import { dedupExchange, fetchExchange, stringifyVariables } from "urql";
-import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
 import {
   LogoutMutation,
   MeQuery,
   MeDocument,
   LoginMutation,
   RegisterMutation,
-} from "../generated/graphql";
+  VoteMutationVariables,
+} from "./../generated/graphql";
+import { dedupExchange, fetchExchange, stringifyVariables } from "urql";
+import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
+
 import { betterUpdateQuery } from "./betterUpdateQuery";
 
 import { pipe, tap } from "wonka";
 import { Exchange } from "urql";
 import Router from "next/router";
+import gql from "graphql-tag";
+import { isServer } from "./isServer";
 
 /* -------------------------------------------------------------------------- */
 /*                         Add-on components for URQL                         */
@@ -86,96 +90,136 @@ const cursorPagination = (): Resolver => {
 /* -------------------------------------------------------------------------- */
 
 // This central Client manages all of our GraphQL requests and results.
-export const createUrqlClient = (ssrExchange: any) => ({
-  url: "http://localhost:4000/graphql",
-  fetchOptions: {
-    credentials: "include" as const,
-  },
-  // see this doc for better understanding about URQL exchanges
-  // https://formidable.com/open-source/urql/docs/api/core/#exchanges
-  exchanges: [
-    dedupExchange, // eliminating duplicate copies of repeating data.
-    // apply cache updates (Cache Exchange) for auth mutations
-    // this is because urql client does not update the cache automatically after each request
-    // see https://formidable.com/open-source/urql/docs/graphcache/cache-updates/
-    // reference 3:26:21 https://www.youtube.com/watch?v=I6ypD7qv3Z8&t=9813s
-    cacheExchange({
-      // this pagination function will run every time the query resolver is run in this urql cacheExchange
-      // apply pagination on get many query typed resolvers. (query builder*)
-      // however the pagintaion function declared above must match the mold, the design of pagination's type
-      // i.e: cursor & limit vs offset & limit
-      resolvers: {
-        Query: {
-          posts: cursorPagination(),
-        },
-      },
-      // auto-update cache for all kind of mutations for real-time refresh exprience
-      // for auth cache update, updating the data.me query using betterUpdateQuery for better caching-update experience
-      // updateQuery() can be used to update the data of a given query using an updater function
-      updates: {
-        Mutation: {
-          // reset the cache and re-fetch newer data from the server 
-          // once the createPost resolver action is completed.
-          createPost: (_result, args, cache, info) => {
-            const allFields = cache.inspectFields("Query");
-            // validate fields
-            const fieldInfos = allFields.filter(
-              (info) => info.fieldName === "posts"
-            );
-            // invalidate all posts of field Query to prepare for the next server-data-fetching 
-            fieldInfos.forEach(
-              (fi) => {
-                cache.invalidate("Query", "posts", fi.arguments || {})
-              }
-            )
-          },
-          logout: (_result, args, cache, info) => {
-            betterUpdateQuery<LogoutMutation, MeQuery>(
-              cache,
-              { query: MeDocument },
-              _result,
-              () => ({ me: null })
-            );
-          },
-
-          login: (_result, args, cache, info) => {
-            betterUpdateQuery<LoginMutation, MeQuery>(
-              cache,
-              { query: MeDocument },
-              _result,
-              (result, query) => {
-                if (result.login.errors) {
-                  return query;
-                } else {
-                  return {
-                    me: result.login.user,
-                  };
-                }
-              }
-            );
-          },
-
-          register: (_result, args, cache, info) => {
-            betterUpdateQuery<RegisterMutation, MeQuery>(
-              cache,
-              { query: MeDocument },
-              _result,
-              (result, query) => {
-                if (result.register.errors) {
-                  return query;
-                } else {
-                  return {
-                    me: result.register.user,
-                  };
-                }
-              }
-            );
+export const createUrqlClient = (ssrExchange: any, ctx: any) => {
+  let cookie = "";
+  if (isServer()) {
+    cookie = ctx.req.headers.cookie;
+  }
+  return {
+    url: "http://localhost:4000/graphql",
+    fetchOptions: {
+      credentials: "include" as const,
+      // ssr cookie for real time update of the voting
+      headers: cookie
+        ? {
+            cookie,
+          }
+        : undefined,
+    },
+    // see this doc for better understanding about URQL exchanges
+    // https://formidable.com/open-source/urql/docs/api/core/#exchanges
+    exchanges: [
+      dedupExchange, // eliminating duplicate copies of repeating data.
+      // apply cache updates (Cache Exchange) for auth mutations
+      // this is because urql client does not update the cache automatically after each request
+      // see https://formidable.com/open-source/urql/docs/graphcache/cache-updates/
+      // reference 3:26:21 https://www.youtube.com/watch?v=I6ypD7qv3Z8&t=9813s
+      cacheExchange({
+        // this pagination function will run every time the query resolver is run in this urql cacheExchange
+        // apply pagination on get many query typed resolvers. (query builder*)
+        // however the pagintaion function declared above must match the mold, the design of pagination's type
+        // i.e: cursor & limit vs offset & limit
+        resolvers: {
+          Query: {
+            posts: cursorPagination(),
           },
         },
-      },
-    }),
-    errorExchange, // global error handling for each URQL request
-    ssrExchange, // reduce browser load, better UX
-    fetchExchange, //  is responsible for sending operations of type 'query' and 'mutation' to a GraphQL API using fetch
-  ],
-});
+        // auto-update cache for all kind of mutations for real-time refresh exprience
+        updates: {
+          Mutation: {
+            vote: (_result, args, cache, info) => {
+              const { postId, value } = args as VoteMutationVariables;
+              const data = cache.readFragment(
+                gql`
+                  fragment _ on Post {
+                    _id
+                    points
+                    voteStatus
+                  }
+                `,
+                { _id: postId } as any
+              );
+
+              if (data) {
+                if (data.voteStatus === value) {
+                  return;
+                }
+                const newPoints =
+                  (data.points as number) + (!data.voteStatus ? 1 : 2) * value;
+                cache.writeFragment(
+                  gql`
+                    fragment __ on Post {
+                      points
+                      voteStatus
+                    }
+                  `,
+                  { _id: postId, points: newPoints, voteStatus: value } as any
+                );
+              }
+            },
+
+            // reset the cache and re-fetch newer data from the server
+            // once the createPost resolver action is completed.
+            createPost: (_result, args, cache, info) => {
+              const allFields = cache.inspectFields("Query");
+              // validate fields
+              const fieldInfos = allFields.filter(
+                (info) => info.fieldName === "posts"
+              );
+              // invalidate all posts of field Query to prepare for the next server-data-fetching
+              fieldInfos.forEach((fi) => {
+                cache.invalidate("Query", "posts", fi.arguments || {});
+              });
+            },
+            // call the MeQuery() and update the cache named "me"
+            logout: (_result, args, cache, info) => {
+              betterUpdateQuery<LogoutMutation, MeQuery>(
+                cache,
+                { query: MeDocument },
+                _result,
+                () => ({ me: null })
+              );
+            },
+
+            login: (_result, args, cache, info) => {
+              betterUpdateQuery<LoginMutation, MeQuery>(
+                cache,
+                { query: MeDocument },
+                _result,
+                (result, query) => {
+                  if (result.login.errors) {
+                    return query;
+                  } else {
+                    return {
+                      me: result.login.user,
+                    };
+                  }
+                }
+              );
+            },
+
+            register: (_result, args, cache, info) => {
+              betterUpdateQuery<RegisterMutation, MeQuery>(
+                cache,
+                { query: MeDocument },
+                _result,
+                (result, query) => {
+                  if (result.register.errors) {
+                    return query;
+                  } else {
+                    return {
+                      me: result.register.user,
+                    };
+                  }
+                }
+              );
+            },
+          },
+        },
+      }),
+      errorExchange, // global error handling for each URQL request
+      ssrExchange, // reduce browser load, better UX
+      fetchExchange, //  is responsible for sending operations of type 'query' and 'mutation' to a GraphQL API using fetch
+    ],
+  };
+};

@@ -2,18 +2,22 @@ import { withUrqlClient } from "next-urql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import { usePostsQuery } from "../generated/graphql";
 import { Layout } from "../components/Layout";
-
+import { IconButton } from "@chakra-ui/react"
 import {
   Box,
   Button,
   Flex,
   Heading,
+  Icon,
   Link,
   Stack,
   Text,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
 import React, { useState } from "react";
+import { UpdootSection } from "../components/UpdootSection";
+
+
 
 const Index = () => {
   const [variables, setvariables] = useState({
@@ -50,17 +54,18 @@ const Index = () => {
       {!data && fetching ? (
         <div>loading...</div>
       ) : (
-        data!.posts.posts.map((p) => (
-          <Stack spacing={8}>
-            <Box p={5} shadow="md" borderWidth="1px" flex="1" borderRadius="md">
-              <Flex>
+        <Stack spacing={8}>
+          {data!.posts.posts.map((p) => (
+            <Flex p={5} shadow="md" borderWidth="1px" flex="1" borderRadius="md">
+              <UpdootSection post={p}/>
+              <Box>
                 <Heading fontSize="xl" marginEnd={2}>{p.title}</Heading>
                 <Text fontSize='small'> by {p.creator.username}</Text>
-              </Flex>
-              <Text mt={4}>{p.textSnippet} ...</Text>
-            </Box>
-          </Stack>
-        ))
+                <Text mt={4}>{p.textSnippet} ...</Text>
+              </Box>
+            </Flex>
+          ))}
+        </Stack>
       )}
 
       {/* load more button */}

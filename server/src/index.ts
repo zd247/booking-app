@@ -13,6 +13,7 @@ import path from "path";
 import { User } from "./entities/User";
 import { Post } from "./entities/Post";
 import { Updoot } from "./entities/Updoot";
+import { createUpdootLoader } from "./utils/createUpdootLoader";
 
 // The order of middleware declarations matter since it will tell ApolloServer to them in order
 const main = async () => {
@@ -28,7 +29,7 @@ const main = async () => {
     entities: [User, Post, Updoot],
     name: "default",
     migrations: [path.join(__dirname, "./migrations/*")],
-    synchronize: false,
+    synchronize: true,
   });
 
   // running custom migrations
@@ -75,7 +76,7 @@ const main = async () => {
       resolvers: [PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({ req, res, redis }),
+    context: ({ req, res }) => ({ req, res, redis, updootLoader: createUpdootLoader(), }),
   });
   apolloServer.applyMiddleware({ app, cors: false });
 

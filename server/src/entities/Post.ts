@@ -1,5 +1,5 @@
 
-import {ObjectType, Field} from 'type-graphql'
+import {ObjectType, Field, Int} from 'type-graphql'
 import { Column, Entity, PrimaryGeneratedColumn, BaseEntity, ManyToOne, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Updoot } from './Updoot';
 import { User } from './User';
@@ -18,6 +18,9 @@ export class Post extends BaseEntity {
     @Field()
     @Column()
     text!: string;
+
+    @Field(() => Int , {nullable: true})
+    voteStatus: number | null // 3 states, up, down and not voted.
 
     @Field()
     @Column({type: "int", default: 0})

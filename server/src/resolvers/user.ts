@@ -48,6 +48,7 @@ export class UserResolver {
     /* -------------------------------------------------------------------------- */
     /*                              Utils and Extras                              */
     /* -------------------------------------------------------------------------- */
+    // BROWSER COOKIE GENERATED
     // return user based on the stored session cookie
     @Query(() => User, {nullable: true})
     async me (@Ctx() { req} : MyContext){
@@ -58,6 +59,7 @@ export class UserResolver {
     }
 
     /**
+     * LOCAL MEMORY STORAGE
      * check for user with the email in the params, if invalid then nah
      * if it's ok then we generate token with uuid
      * store user's id in redis with the set key

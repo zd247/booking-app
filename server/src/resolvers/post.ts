@@ -16,6 +16,7 @@ import {
   ObjectType,
 } from "type-graphql";
 import { getConnection } from "typeorm";
+import { Updoot } from "./../entities/Updoot";
 
 @InputType()
 class PostInput {
@@ -36,6 +37,9 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export default class PostResolver {
+  /* -------------------------------------------------------------------------- */
+  /*                               Field resolvers                              */
+  /* -------------------------------------------------------------------------- */
   /**
    * with this FieldResolver() decorator in place...
    * this function will add a new return field for this entity's resolver
@@ -50,6 +54,27 @@ export default class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  // @FieldResolver(() => Int, { nullable: true })
+  // async voteStatus(
+  //   @Root() post: Post,
+  //   @Ctx() { updootLoader, req }: MyContext
+  // ) {
+  //   if (!req.session.userId) {
+  //     return null;
+  //   }
+
+  //   const updoot = await updootLoader.load({
+  //     postId: post._id,
+  //     userId: req.session.userId,
+  //   });
+
+  //   return updoot ? updoot.value : null;
+  // }
+
+  /* -------------------------------------------------------------------------- */
+  /*                            extra functionalities                           */
+  /* -------------------------------------------------------------------------- */
+
   @Mutation(() => Boolean)
   @UseMiddleware(isAuth)
   async vote(
@@ -61,32 +86,62 @@ export default class PostResolver {
     const realValue = isUpdoot ? 1 : -1; // upvote or downvote
     const { userId } = req.session; // <=> const userId = req.session.userId
 
-    // // create new upvote object which describes the voting
-    // await Updoot.insert({
-    //   userId,
-    //   postId,
-    //   value: realValue,
-    // })
+    // see if the user has an entry in the database (with the postId and userId)
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
 
-    // update the post points through raw sql query.
-    // do this so that if one of the query fail, they both fail.
-    await getConnection().query(
-      `
-    START TRANSACTION;
+    // the user has voted on the post before
+    // and they are changing their vote
+    if (updoot && updoot.value !== realValue) {
+      await getConnection().transaction(async (tm) => {
+        // update the updoot entry
+        await tm.query(
+          `
+          update updoot
+          set value = $1
+          where "postId" = $2 and "userId" = $3
+          `,
+          [realValue, postId, userId]
+        );
 
-      insert into updoot ("userId", "postId", value)
-      values (${userId}, ${postId}, ${realValue});
+        // update the post points. (if the user upvoted before, then the value is 1, thus when the user click the downvote then the value should be -2 or 2.
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where _id = $2
+        `,
+          [2 * realValue, postId]
+        );
+      });
+    } else if (!updoot) {
+      // has never voted before
+      await getConnection().transaction(async (tm) => {
+        // create an updoot entry
+        await tm.query(
+          `
+          insert into updoot ("userId", "postId", value)
+          values ($1, $2, $3)
+          `,
+          [userId, postId, realValue]
+        );
 
-      update post
-      set points = points + ${realValue}
-      where _id = ${postId};
-      
-    COMMIT;
-    `
-    )
-
+        // update the points value of the post.
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where _id = $2
+          `,
+          [realValue, postId]
+        );
+      });
+    }
     return true;
   }
+
+  /* -------------------------------------------------------------------------- */
+  /*                                    CRUD                                    */
+  /* -------------------------------------------------------------------------- */
 
   /**
    * This function query all posts data object from the Post entity with pagination
@@ -100,58 +155,55 @@ export default class PostResolver {
    * take all data before or after it
    */
   @Query(() => PaginatedPosts)
+  @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
-    // cap the limit at 50 if we pass more than 50, prevent fetching the whole database
-    const realLimit = Math.min(50, limit); // fetching 1 more than what we need
-    const realLimitPlusOne = realLimit + 1;
+    // 20 -> 21
+    const realLimit = Math.min(50, limit);
+    const reaLimitPlusOne = realLimit + 1;
 
-    // advanced SQL statements for replacing query builder.
-    const replacements: any[] = [realLimitPlusOne];
+    const replacements: any[] = [reaLimitPlusOne];
+
+    if (req.session.userId) {
+      replacements.push(req.session.userId);
+    }
+
+    let cursorIdx = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
+      cursorIdx = replacements.length;
     }
+
     const posts = await getConnection().query(
       `
-    select p.*,
-    json_build_object (
-      '_id', u._id,
-      'username', u.username,
-      'email', u.email
-    ) creator
-    from post p
-    inner join public.user u on u._id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $2` : ""}
-    order by p."createdAt" DESC
-    limit $1
-    `,
+     select p.*,
+     json_build_object(
+       '_id', u._id,
+       'username', u.username,
+       'email', u.email,
+       'createdAt', u."createdAt",
+       'updatedAt', u."updatedAt"
+       ) creator,
+     ${
+       req.session.userId
+         ? '(select value from updoot where "userId" = $2 and "postId" = p._id) "voteStatus"'
+         : 'null as "voteStatus"'
+     }
+     from post p
+     inner join public.user u on u._id = p."creatorId"
+     ${cursor ? `where p."createdAt" < $${cursorIdx}` : ""}
+     order by p."createdAt" DESC
+     limit $1
+     `,
       replacements
     );
 
-    // // using typeORM query builder to use more advanced query
-    // const qb = getConnection()
-    //   .getRepository(Post)
-    //   .createQueryBuilder("p")
-    //   // get user with joinning relations
-    //   // see https://typeorm.io/#/select-query-builder/joining-relations for more
-    //   .innerJoinAndSelect("p.creator", "u", 'u._id = p."creatorId')
-    //   .orderBy('p."createdAt"', "DESC")
-    //   .take(realLimitPlusOne);
-    // // if the cursor params is passed, let the query builder to selectively query data
-    // if (cursor) {
-    //   qb.where('p."createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
-    // }
-
-    // // execute fetching query
-    // const posts = await qb.getMany();
-
-    console.log (posts)
-
     return {
       posts: posts.slice(0, realLimit),
-      hasMore: posts.length === realLimitPlusOne,
+      hasMore: posts.length === reaLimitPlusOne,
     };
   }
 
