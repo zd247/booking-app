@@ -5,6 +5,7 @@ import {
   LoginMutation,
   RegisterMutation,
   VoteMutationVariables,
+  DeletePostMutationVariables,
 } from "./../generated/graphql";
 import { dedupExchange, fetchExchange, stringifyVariables } from "urql";
 import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
@@ -93,7 +94,7 @@ const cursorPagination = (): Resolver => {
 export const createUrqlClient = (ssrExchange: any, ctx: any) => {
   let cookie = "";
   if (isServer()) {
-    cookie = ctx.req.headers.cookie;
+    cookie = ctx?.req?.headers?.cookie;
   }
   return {
     url: "http://localhost:4000/graphql",
@@ -157,6 +158,12 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                   { _id: postId, points: newPoints, voteStatus: value } as any
                 );
               }
+            },
+            deletePost: (_result, args, cache, info) => {
+              cache.invalidate({
+                __typename: "Post",
+                id: (args as DeletePostMutationVariables).id,
+              });
             },
 
             // reset the cache and re-fetch newer data from the server
