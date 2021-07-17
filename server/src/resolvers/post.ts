@@ -212,8 +212,26 @@ export default class PostResolver {
    * @param _id id of the post to be found.
    */
   @Query(() => Post, { nullable: true })
-  post(@Arg("id", () => Int) _id: number): Promise<Post | undefined> {
-    return Post.findOne(_id, { relations: ["creator"] });
+  async post(@Arg("id", () => Int) _id: number): Promise<Post> {
+    const post = await getConnection().query(
+      `
+    select p.*,
+    json_build_object(
+      '_id', u._id,
+      'username', u.username,
+      'email', u.email,
+      'createdAt', u."createdAt",
+      'updatedAt', u."updatedAt"
+      ) creator
+    from post p
+    inner join public.user u
+     on u._id = p."creatorId"
+    where p._id = $1
+    `,
+      [_id]
+    );
+
+    return post[0]
   }
 
   /**
