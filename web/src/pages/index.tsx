@@ -2,7 +2,7 @@ import { withUrqlClient } from "next-urql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import { usePostsQuery } from "../generated/graphql";
 import { Layout } from "../components/Layout";
-import { IconButton } from "@chakra-ui/react"
+import { IconButton } from "@chakra-ui/react";
 import {
   Box,
   Button,
@@ -16,8 +16,6 @@ import {
 import NextLink from "next/link";
 import React, { useState } from "react";
 import { UpdootSection } from "../components/UpdootSection";
-
-
 
 const Index = () => {
   const [variables, setvariables] = useState({
@@ -56,11 +54,21 @@ const Index = () => {
       ) : (
         <Stack spacing={8}>
           {data!.posts.posts.map((p) => (
-            <Flex p={5} shadow="md" borderWidth="1px" flex="1" borderRadius="md">
-              <UpdootSection post={p}/>
+            <Flex
+              p={5}
+              shadow="md"
+              borderWidth="1px"
+              flex="1"
+              borderRadius="md"
+            >
+              <UpdootSection post={p} />
               <Box>
-                <Heading fontSize="xl" marginEnd={2}>{p.title}</Heading>
-                <Text fontSize='small'> by {p.creator.username}</Text>
+                <NextLink href="/post/[id]" as={`/post/${p._id}`}>
+                  <Link>
+                    <Heading fontSize="xl">{p.title}</Heading>
+                  </Link>
+                </NextLink>
+                <Text fontSize="small"> by {p.creator.username}</Text>
                 <Text mt={4}>{p.textSnippet} ...</Text>
               </Box>
             </Flex>
@@ -76,7 +84,8 @@ const Index = () => {
               // trigger change in passed in variables with cursor and limit
               setvariables({
                 limit: 10,
-                cursor: data!.posts.posts[data.posts.posts.length - 1].createdAt,
+                cursor:
+                  data!.posts.posts[data.posts.posts.length - 1].createdAt,
               });
             }}
             m="auto"

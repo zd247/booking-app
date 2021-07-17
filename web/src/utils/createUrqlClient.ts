@@ -99,7 +99,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
     url: "http://localhost:4000/graphql",
     fetchOptions: {
       credentials: "include" as const,
-      // ssr cookie for real time update of the voting
+      // forwarding the cookie to server request for ssr.
       headers: cookie
         ? {
             cookie,
@@ -127,6 +127,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
         // auto-update cache for all kind of mutations for real-time refresh exprience
         updates: {
           Mutation: {
+            //TODO read and write fragments 
             vote: (_result, args, cache, info) => {
               const { postId, value } = args as VoteMutationVariables;
               const data = cache.readFragment(
